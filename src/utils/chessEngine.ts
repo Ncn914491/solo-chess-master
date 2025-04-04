@@ -1,8 +1,8 @@
 
-import { Board, ChessPiece, GameState, Move, PieceColor, Position, PieceType, Square } from "../types/chess";
+import { Board, ChessPiece, GameState, Move, PieceColor, Position, PieceType, Square, AIDifficulty } from "../types/chess";
 
 // Create a new game with the initial board setup
-export function createNewGame(aiDifficulty: 'beginner' = 'beginner'): GameState {
+export function createNewGame(aiDifficulty: AIDifficulty = 'beginner'): GameState {
   const board = createInitialBoard();
   
   return {
