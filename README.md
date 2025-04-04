@@ -1,73 +1,84 @@
-# Welcome to your Lovable project
+# Solo Chess Master
 
-## Project info
+A modern web-based chess application allowing you to play against a configurable AI opponent or challenge a friend in offline two-player mode. Built with React, TypeScript, Vite, and ShadCN UI.
 
-**URL**: https://lovable.dev/projects/fd9f3424-0298-4930-96d6-270664224ee0
+![Gameplay Screenshot](public/screenshot.png)  <!-- Optional: Add a screenshot later -->
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+*   **Play Against AI**: Challenge an AI opponent with adjustable strength.
+*   **Configurable AI Strength**:
+    *   Select predefined difficulty levels (Beginner, Intermediate, Advanced, Expert).
+    *   Set a specific target Elo rating (400-2400) for the AI.
+*   **Two-Player Offline Mode**: Play against a friend on the same device.
+*   **Standard Chess Rules**: Includes castling, en passant, pawn promotion.
+*   **Game Controls**: Undo moves, restart the game, open settings.
+*   **Visual Aids**:
+    *   Highlights legal moves for the selected piece.
+    *   Indicates check status.
+    *   Highlights the last move made.
+*   **Move History**: View a list of all moves made in the current game.
+*   **Clean UI**: Built with ShadCN UI and Tailwind CSS for a modern look and feel.
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fd9f3424-0298-4930-96d6-270664224ee0) and start prompting.
+*   **Framework**: React
+*   **Language**: TypeScript
+*   **Build Tool**: Vite
+*   **UI Components**: ShadCN UI
+*   **Styling**: Tailwind CSS
+*   **Chess Logic**: Custom chess engine and AI implementation
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+*   Node.js (v18 or later recommended)
+*   npm (comes with Node.js)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation & Running Locally
 
-Follow these steps:
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/Ncn914491/solo-chess-master.git
+    cd solo-chess-master
+    ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4.  Open your browser and navigate to `http://localhost:8080` (or the port specified in the console).
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## How to Play
 
-**Edit a file directly in GitHub**
+1.  **Select Game Mode**: Click the "Settings" button. Choose between "AI Opponent" and "Two Player".
+2.  **Configure AI (if AI Opponent selected)**: Use the "Target AI Elo" input to set the desired strength (400-2400). The internal difficulty level will adjust automatically.
+3.  **Start Playing**:
+    *   Click on one of your pieces to see its legal moves highlighted.
+    *   Click on a highlighted square to make the move.
+    *   In "AI Opponent" mode, the AI will automatically make its move after yours.
+    *   In "Two Player" mode, players take turns making moves.
+4.  **Use Controls**: Use the buttons below the board to "Undo" the last move(s), "Restart" the game, or access "Settings".
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## AI Implementation Details
 
-**Use GitHub Codespaces**
+The chess AI uses several standard techniques:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/fd9f3424-0298-4930-96d6-270664224ee0) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+*   **Minimax Algorithm**: A core search algorithm to explore possible game states.
+*   **Alpha-Beta Pruning**: Optimizes the minimax search by cutting off branches that won't affect the final decision.
+*   **Quiescence Search**: Extends the search depth for "noisy" positions (captures, checks) to avoid the horizon effect and improve tactical accuracy.
+*   **Transposition Tables**: Stores previously evaluated positions (using Zobrist hashing) to avoid redundant calculations and speed up the search.
+*   **Move Ordering**: Prioritizes searching more promising moves (captures, TT best moves) first to enhance pruning efficiency.
+*   **Evaluation Function**: Evaluates board positions based on material balance, piece positional values, mobility, and king safety.
+*   **Difficulty Levels**:
+    *   **Beginner**: Random moves with a preference for captures.
+    *   **Intermediate**: Uses the basic evaluation function without deep search.
+    *   **Advanced**: Minimax search with a depth of 2.
+    *   **Expert**: Minimax search with a depth of 3 and iterative deepening.
