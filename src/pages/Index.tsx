@@ -24,7 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 const Index = () => {
-  const [gameState, setGameState] = useState<GameState>(createNewGame());
+  const [gameState, setGameState] = useState<GameState>(createNewGame('beginner')); // Explicitly pass 'beginner'
   const [difficulty, setDifficulty] = useState<AIDifficulty>("beginner");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { toast } = useToast();
@@ -75,7 +75,7 @@ const Index = () => {
   };
 
   const handleRestart = () => {
-    setGameState(createNewGame(difficulty));
+    setGameState(createNewGame(difficulty)); // Pass the current difficulty
     
     toast({
       title: "Game Restarted",
@@ -87,7 +87,7 @@ const Index = () => {
     setDifficulty(newDifficulty);
     
     // Restart the game with the new difficulty
-    setGameState(createNewGame(newDifficulty));
+    setGameState(createNewGame(newDifficulty)); // Pass new difficulty
     
     toast({
       title: "Difficulty Changed",
