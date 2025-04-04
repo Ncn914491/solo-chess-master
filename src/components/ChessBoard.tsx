@@ -4,6 +4,7 @@ import { Board, ChessPiece as ChessPieceType, GameState, Move, Position } from "
 import ChessPiece from "./ChessPiece";
 import { getLegalMoves, makeMove } from "../utils/chessEngine";
 import { getAIMove } from "../utils/chessAI";
+import { isValidPosition } from "../utils/boardUtils";
 
 interface ChessBoardProps {
   gameState: GameState;
@@ -61,6 +62,12 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
     const { row, col } = playerColor === "black" ? 
       { row: 7 - position.row, col: 7 - position.col } : position;
 
+    // Make sure the position is valid
+    if (!isValidPosition({ row, col })) {
+      console.error("Invalid position clicked:", row, col);
+      return;
+    }
+
     const clickedPiece = board[row][col];
 
     // If no piece is selected and clicked on empty square, do nothing
@@ -75,6 +82,13 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
         setSelectedPosition({ row, col });
         setLegalMoves(getLegalMoves(gameState, { row, col }));
       }
+      return;
+    }
+
+    // Make sure the selected position is valid
+    if (!isValidPosition(selectedPosition)) {
+      setSelectedPosition(null);
+      setLegalMoves([]);
       return;
     }
 
