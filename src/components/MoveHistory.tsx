@@ -1,34 +1,72 @@
 
 import React from "react";
 import { Move } from "../types/chess";
+import { positionToString } from "../utils/boardUtils";
 
 interface MoveHistoryProps {
   moves: Move[];
 }
 
 const MoveHistory: React.FC<MoveHistoryProps> = ({ moves }) => {
-  // Convert position to algebraic notation (e.g., "e4")
-  const toAlgebraic = (position: { row: number; col: number }): string => {
-    const files = 'abcdefgh';
-    const ranks = '87654321';
-    
-    return files[position.col] + ranks[position.row];
-  };
-
-  // Format a move in a simplified algebraic notation (e.g., "e2e4" instead of full "Pe2-e4")
+  // Format a move in a simplified algebraic notation
   const formatMove = (move: Move, index: number): string => {
-    const from = toAlgebraic(move.from);
-    const to = toAlgebraic(move.to);
-    const isCapture = move.capturedPiece ? 'x' : '-';
+    const from = positionToString(move.from);
+    const to = positionToString(move.to);
     
-    let notation = `${from}${isCapture}${to}`;
-    
-    if (move.isCheck) {
-      notation += '+';
+    // Special move notations
+    if (move.isCastling) {
+      // Kingside or queenside castling
+      return move.to.col === 6 ? 'O-O' : 'O-O-O';
     }
     
+    let notation = '';
+    
+    // Add piece symbol for non-pawns
+    if (move.piece.type !== 'pawn') {
+      const pieceSymbols: Record<string, string> = {
+        knight: 'N',
+        bishop: 'B',
+        rook: 'R',
+        queen: 'Q',
+        king: 'K',
+      };
+      notation += pieceSymbols[move.piece.type];
+    }
+    
+    // Add the from position
+    notation += from;
+    
+    // Add capture symbol
+    if (move.capturedPiece || move.isEnPassant) {
+      notation += 'x';
+    } else {
+      notation += '-';
+    }
+    
+    // Add the to position
+    notation += to;
+    
+    // Add en passant suffix
+    if (move.isEnPassant) {
+      notation += ' e.p.';
+    }
+    
+    // Add promotion piece
+    if (move.isPromotion && move.promotionPiece) {
+      const promotionSymbols: Record<string, string> = {
+        knight: 'N',
+        bishop: 'B',
+        rook: 'R',
+        queen: 'Q',
+      };
+      notation += '=' + promotionSymbols[move.promotionPiece];
+    }
+    
+    // Add check/checkmate symbols
     if (move.isCheckmate) {
       notation += '#';
+    } else if (move.isCheck) {
+      notation += '+';
     }
     
     return notation;
@@ -56,7 +94,7 @@ const MoveHistory: React.FC<MoveHistoryProps> = ({ moves }) => {
         </thead>
         <tbody>
           {movePairs.map(pair => (
-            <tr key={pair.number} className="border-b">
+            <tr key={pair.number} className="border-b hover:bg-gray-50">
               <td className="px-3 py-2 text-gray-500">{pair.number}</td>
               <td className="px-3 py-2">{formatMove(pair.white, pair.number * 2 - 2)}</td>
               <td className="px-3 py-2">{pair.black ? formatMove(pair.black, pair.number * 2 - 1) : ''}</td>
@@ -64,7 +102,7 @@ const MoveHistory: React.FC<MoveHistoryProps> = ({ moves }) => {
           ))}
           {/* Add an extra row if there's an odd number of moves (white's move without black's response) */}
           {moves.length % 2 === 1 && (
-            <tr className="border-b">
+            <tr className="border-b hover:bg-gray-50">
               <td className="px-3 py-2 text-gray-500">{Math.floor(moves.length / 2) + 1}</td>
               <td className="px-3 py-2">{formatMove(moves[moves.length - 1], moves.length - 1)}</td>
               <td className="px-3 py-2"></td>

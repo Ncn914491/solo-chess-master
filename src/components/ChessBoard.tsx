@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from "react";
-import { Board, ChessPiece as ChessPieceType, GameState, Move, Position } from "../types/chess";
+import { Board, ChessPiece as ChessPieceType, GameState, Move, Position, PieceType } from "../types/chess";
 import ChessPiece from "./ChessPiece";
 import { getLegalMoves, makeMove } from "../utils/chessEngine";
 import { getAIMove } from "../utils/chessAI";
 import { isValidPosition } from "../utils/boardUtils";
+import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
 interface ChessBoardProps {
   gameState: GameState;
@@ -22,6 +24,8 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [legalMoves, setLegalMoves] = useState<Position[]>([]);
   const [animating, setAnimating] = useState(false);
+  const [promotionMove, setPromotionMove] = useState<{from: Position, to: Position, piece: ChessPieceType} | null>(null);
+  const [showPromotionDialog, setShowPromotionDialog] = useState(false);
 
   const { board, currentPlayer, moveHistory, isCheck, isCheckmate, isStalemate } = gameState;
   
@@ -52,9 +56,38 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
     }
   }, [currentPlayer, gameState, isCheckmate, isStalemate, onMove, playerColor, animating]);
 
+  const handlePromotionSelect = (promotionPiece: PieceType) => {
+    if (!promotionMove) return;
+    
+    const { from, to, piece } = promotionMove;
+    
+    // Create the move with promotion piece
+    const move: Move = {
+      from,
+      to,
+      piece,
+      capturedPiece: board[to.row][to.col] || undefined,
+      isPromotion: true,
+      promotionPiece
+    };
+    
+    // Apply the move
+    const newGameState = makeMove(gameState, move);
+    onMove(newGameState);
+    
+    // Reset promotion state
+    setPromotionMove(null);
+    setShowPromotionDialog(false);
+    setSelectedPosition(null);
+    setLegalMoves([]);
+    
+    // Wait for animation to complete
+    setTimeout(() => setAnimating(false), 300);
+  };
+
   const handleSquareClick = (position: Position) => {
-    // Don't allow moves during animation
-    if (animating) return;
+    // Don't allow moves during animation or promotion dialog
+    if (animating || showPromotionDialog) return;
     
     // Don't allow moves if it's not the player's turn
     if (currentPlayer !== playerColor) return;
@@ -108,7 +141,23 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
     );
 
     if (isLegalMove && selectedPiece) {
-      // Make the move
+      // Check for pawn promotion
+      const isPawnPromotion = selectedPiece.type === 'pawn' && 
+        ((selectedPiece.color === 'white' && row === 0) || 
+         (selectedPiece.color === 'black' && row === 7));
+         
+      if (isPawnPromotion) {
+        setPromotionMove({
+          from: selectedPosition,
+          to: { row, col },
+          piece: selectedPiece
+        });
+        setAnimating(true);
+        setShowPromotionDialog(true);
+        return;
+      }
+      
+      // Regular move (not a promotion)
       const move: Move = {
         from: selectedPosition,
         to: { row, col },
@@ -227,13 +276,36 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   };
 
   return (
-    <div className="w-full aspect-square max-w-md mx-auto border-2 border-gray-800 shadow-lg">
-      <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
-        {Array.from({ length: 8 }, (_, row) =>
-          Array.from({ length: 8 }, (_, col) => renderSquare({ row, col }))
-        )}
+    <>
+      <div className="w-full aspect-square max-w-md mx-auto border-2 border-gray-800 shadow-lg">
+        <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
+          {Array.from({ length: 8 }, (_, row) =>
+            Array.from({ length: 8 }, (_, col) => renderSquare({ row, col }))
+          )}
+        </div>
       </div>
-    </div>
+      
+      {/* Pawn Promotion Dialog */}
+      <Dialog open={showPromotionDialog} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="text-center">Choose promotion piece</DialogTitle>
+          <div className="flex justify-center space-x-4 p-4">
+            <Button onClick={() => handlePromotionSelect('queen')} className="px-6 py-6">
+              <ChessPiece piece={{ type: 'queen', color: currentPlayer }} />
+            </Button>
+            <Button onClick={() => handlePromotionSelect('rook')} className="px-6 py-6">
+              <ChessPiece piece={{ type: 'rook', color: currentPlayer }} />
+            </Button>
+            <Button onClick={() => handlePromotionSelect('bishop')} className="px-6 py-6">
+              <ChessPiece piece={{ type: 'bishop', color: currentPlayer }} />
+            </Button>
+            <Button onClick={() => handlePromotionSelect('knight')} className="px-6 py-6">
+              <ChessPiece piece={{ type: 'knight', color: currentPlayer }} />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

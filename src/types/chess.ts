@@ -28,6 +28,13 @@ export interface Move {
   isEnPassant?: boolean;
 }
 
+export interface CastlingRights {
+  whiteKingSide: boolean;
+  whiteQueenSide: boolean;
+  blackKingSide: boolean;
+  blackQueenSide: boolean;
+}
+
 export interface GameState {
   board: Board;
   currentPlayer: PieceColor;
@@ -38,6 +45,8 @@ export interface GameState {
   whiteKingPosition: Position;
   blackKingPosition: Position;
   aiDifficulty: AIDifficulty;
+  castlingRights: CastlingRights;
+  enPassantTarget: Position | null;
 }
 
 export type AIDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
