@@ -70,6 +70,8 @@ export default {
 					'possible-move': '#58B95880',
 					'last-move': '#FFC10780',
 					'check': '#FF000080',
+					'suggestion': '#00FF0080',
+					'threat': '#FF00FF80',
 				}
 			},
 			borderRadius: {

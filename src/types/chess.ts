@@ -1,4 +1,3 @@
-
 export type PieceType = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
 export type PieceColor = 'white' | 'black';
 
@@ -45,8 +44,13 @@ export interface GameState {
   whiteKingPosition: Position;
   blackKingPosition: Position;
   aiDifficulty: AIDifficulty;
+  gameMode: GameMode;
   castlingRights: CastlingRights;
   enPassantTarget: Position | null;
+  showSuggestions?: boolean;
+  showThreats?: boolean;
 }
 
 export type AIDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
+export type GameMode = 'ai' | 'twoPlayer';

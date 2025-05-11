@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Board, ChessPiece as ChessPieceType, GameState, Move, Position, PieceType } from "../types/chess";
 import ChessPiece from "./ChessPiece";
-import { getLegalMoves, makeMove } from "../utils/chessEngine";
+import { getLegalMoves, makeMove, getBestMoveSuggestion, getThreatenedSquares } from "../utils/chessEngine";
 import { getAIMove } from "../utils/chessAI";
 import { isValidPosition } from "../utils/boardUtils";
 import { Button } from "./ui/button";
@@ -26,41 +25,83 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   const [animating, setAnimating] = useState(false);
   const [promotionMove, setPromotionMove] = useState<{from: Position, to: Position, piece: ChessPieceType} | null>(null);
   const [showPromotionDialog, setShowPromotionDialog] = useState(false);
+  const [suggestedMove, setSuggestedMove] = useState<Move | null>(null);
+  const [threatenedSquares, setThreatenedSquares] = useState<Position[]>([]);
 
-  const { board, currentPlayer, moveHistory, isCheck, isCheckmate, isStalemate } = gameState;
-  
+  const { board, currentPlayer, moveHistory, isCheck, isCheckmate, isStalemate, showSuggestions, showThreats } = gameState;
+
   // Flip the board if playing as black
-  const displayBoard = playerColor === "black" ? 
+  const displayBoard = playerColor === "black" ?
     [...board].reverse().map(row => [...row].reverse()) : board;
 
   // AI move logic
   useEffect(() => {
-    if (currentPlayer !== playerColor && !isCheckmate && !isStalemate && !animating) {
+    if (gameState.gameMode === 'ai' && currentPlayer !== playerColor && !isCheckmate && !isStalemate && !animating) {
       const makeAIMove = async () => {
         // Add a slight delay to make the AI's move feel more natural
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const aiMove = getAIMove(gameState);
-        
+
         if (aiMove) {
           setAnimating(true);
           const newGameState = makeMove(gameState, aiMove);
           onMove(newGameState);
-          
+
           // Wait for animation to complete
           setTimeout(() => setAnimating(false), 300);
         }
       };
-      
+
       makeAIMove();
     }
   }, [currentPlayer, gameState, isCheckmate, isStalemate, onMove, playerColor, animating]);
 
+  // Update suggestions and threatened squares
+  useEffect(() => {
+    // Only calculate if the features are enabled and the game is active
+    if (!isCheckmate && !isStalemate && !animating) {
+      try {
+        // Update move suggestions if enabled
+        if (showSuggestions && currentPlayer === playerColor) {
+          console.log("Getting move suggestions...");
+          const bestMove = getBestMoveSuggestion(gameState);
+          console.log("Suggested move:", bestMove);
+          setSuggestedMove(bestMove);
+        } else {
+          setSuggestedMove(null);
+        }
+      } catch (error) {
+        console.error("Error getting move suggestions:", error);
+        setSuggestedMove(null);
+      }
+
+      try {
+        // Update threatened squares if enabled
+        if (showThreats) {
+          console.log("Getting threatened squares...");
+          const threats = getThreatenedSquares(gameState);
+          console.log("Threatened squares:", threats);
+          setThreatenedSquares(threats);
+        } else {
+          setThreatenedSquares([]);
+        }
+      } catch (error) {
+        console.error("Error getting threatened squares:", error);
+        setThreatenedSquares([]);
+      }
+    } else {
+      // Clear suggestions and threats when game is over
+      setSuggestedMove(null);
+      setThreatenedSquares([]);
+    }
+  }, [gameState, showSuggestions, showThreats, currentPlayer, playerColor, isCheckmate, isStalemate, animating]);
+
   const handlePromotionSelect = (promotionPiece: PieceType) => {
     if (!promotionMove) return;
-    
+
     const { from, to, piece } = promotionMove;
-    
+
     // Create the move with promotion piece
     const move: Move = {
       from,
@@ -70,17 +111,17 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
       isPromotion: true,
       promotionPiece
     };
-    
+
     // Apply the move
     const newGameState = makeMove(gameState, move);
     onMove(newGameState);
-    
+
     // Reset promotion state
     setPromotionMove(null);
     setShowPromotionDialog(false);
     setSelectedPosition(null);
     setLegalMoves([]);
-    
+
     // Wait for animation to complete
     setTimeout(() => setAnimating(false), 300);
   };
@@ -88,11 +129,11 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   const handleSquareClick = (position: Position) => {
     // Don't allow moves during animation or promotion dialog
     if (animating || showPromotionDialog) return;
-    
-    // Don't allow moves if it's not the player's turn
-    if (currentPlayer !== playerColor) return;
-    
-    const { row, col } = playerColor === "black" ? 
+
+    // Don't allow moves if it's not the player's turn in AI mode
+    if (gameState.gameMode === 'ai' && currentPlayer !== playerColor) return;
+
+    const { row, col } = playerColor === "black" ?
       { row: 7 - position.row, col: 7 - position.col } : position;
 
     // Make sure the position is valid
@@ -142,10 +183,10 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
 
     if (isLegalMove && selectedPiece) {
       // Check for pawn promotion
-      const isPawnPromotion = selectedPiece.type === 'pawn' && 
-        ((selectedPiece.color === 'white' && row === 0) || 
+      const isPawnPromotion = selectedPiece.type === 'pawn' &&
+        ((selectedPiece.color === 'white' && row === 0) ||
          (selectedPiece.color === 'black' && row === 7));
-         
+
       if (isPawnPromotion) {
         setPromotionMove({
           from: selectedPosition,
@@ -156,7 +197,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
         setShowPromotionDialog(true);
         return;
       }
-      
+
       // Regular move (not a promotion)
       const move: Move = {
         from: selectedPosition,
@@ -166,7 +207,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
       };
 
       setAnimating(true);
-      
+
       // Apply the move and update the game state
       const newGameState = makeMove(gameState, move);
       onMove(newGameState);
@@ -174,7 +215,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
       // Reset selection
       setSelectedPosition(null);
       setLegalMoves([]);
-      
+
       // Wait for animation to complete
       setTimeout(() => setAnimating(false), 300);
     } else {
@@ -190,32 +231,46 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
     const piece = displayBoard[row][col];
 
     // Determine if this square is selected
-    const isSelected = selectedPosition && 
-                      ((playerColor === "black" ? 7 - selectedPosition.row : selectedPosition.row) === row) && 
+    const isSelected = selectedPosition &&
+                      ((playerColor === "black" ? 7 - selectedPosition.row : selectedPosition.row) === row) &&
                       ((playerColor === "black" ? 7 - selectedPosition.col : selectedPosition.col) === col);
 
     // Determine if this is a legal move
-    const isLegalMove = legalMoves.some(move => 
-      (playerColor === "black" ? 7 - move.row : move.row) === row && 
+    const isLegalMove = legalMoves.some(move =>
+      (playerColor === "black" ? 7 - move.row : move.row) === row &&
       (playerColor === "black" ? 7 - move.col : move.col) === col
     );
 
     // Determine if this is part of the last move
     const lastMove = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1] : null;
-    const isLastMoveFrom = lastMove && 
-                          (playerColor === "black" ? 7 - lastMove.from.row : lastMove.from.row) === row && 
+    const isLastMoveFrom = lastMove &&
+                          (playerColor === "black" ? 7 - lastMove.from.row : lastMove.from.row) === row &&
                           (playerColor === "black" ? 7 - lastMove.from.col : lastMove.from.col) === col;
-    const isLastMoveTo = lastMove && 
-                        (playerColor === "black" ? 7 - lastMove.to.row : lastMove.to.row) === row && 
+    const isLastMoveTo = lastMove &&
+                        (playerColor === "black" ? 7 - lastMove.to.row : lastMove.to.row) === row &&
                         (playerColor === "black" ? 7 - lastMove.to.col : lastMove.to.col) === col;
 
     // Determine if the king is in check
     const actualRow = playerColor === "black" ? 7 - row : row;
     const actualCol = playerColor === "black" ? 7 - col : col;
-    const isKingInCheck = isCheck && 
-                        piece && 
-                        piece.type === "king" && 
+    const isKingInCheck = isCheck &&
+                        piece &&
+                        piece.type === "king" &&
                         piece.color === currentPlayer;
+
+    // Determine if this square is part of a suggested move
+    const isSuggestedFrom = suggestedMove &&
+                          (playerColor === "black" ? 7 - suggestedMove.from.row : suggestedMove.from.row) === row &&
+                          (playerColor === "black" ? 7 - suggestedMove.from.col : suggestedMove.from.col) === col;
+    const isSuggestedTo = suggestedMove &&
+                        (playerColor === "black" ? 7 - suggestedMove.to.row : suggestedMove.to.row) === row &&
+                        (playerColor === "black" ? 7 - suggestedMove.to.col : suggestedMove.to.col) === col;
+
+    // Determine if this square is threatened
+    const isThreatened = threatenedSquares.some(pos =>
+      (playerColor === "black" ? 7 - pos.row : pos.row) === row &&
+      (playerColor === "black" ? 7 - pos.col : pos.col) === col
+    );
 
     return (
       <div
@@ -229,12 +284,12 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
         {(isLastMoveFrom || isLastMoveTo) && (
           <div className="absolute inset-0 bg-chess-last-move" />
         )}
-        
+
         {/* Highlight selected square */}
         {isSelected && (
           <div className="absolute inset-0 bg-chess-selected" />
         )}
-        
+
         {/* Highlight legal moves */}
         {isLegalMove && (
           <div className={`absolute inset-0 flex items-center justify-center ${piece ? "bg-chess-possible-move" : ""}`}>
@@ -243,19 +298,48 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
             )}
           </div>
         )}
-        
+
         {/* Highlight king in check */}
         {isKingInCheck && (
           <div className="absolute inset-0 bg-chess-check" />
         )}
-        
+
+        {/* Highlight suggested move */}
+        {(isSuggestedFrom || isSuggestedTo) && (
+          <div className={`absolute inset-0 flex items-center justify-center ${piece ? "bg-chess-suggestion opacity-60" : ""}`}>
+            {isSuggestedFrom && (
+              <div className="absolute top-0 left-0 w-0 h-0 border-t-8 border-l-8 border-chess-suggestion" />
+            )}
+            {isSuggestedTo && !piece && (
+              <div className="w-3 h-3 rounded-full bg-chess-suggestion opacity-80" />
+            )}
+            {isSuggestedTo && piece && (
+              <div className="absolute inset-0 border-2 border-chess-suggestion rounded-full" />
+            )}
+          </div>
+        )}
+
+        {/* Highlight threatened squares with red arrows */}
+        {isThreatened && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" width="24" height="24" className="text-red-600 drop-shadow-md">
+                <path
+                  fill="currentColor"
+                  d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z"
+                />
+              </svg>
+            </div>
+          </div>
+        )}
+
         {/* Render the piece */}
         {piece && (
           <div className={`w-full h-full ${isLastMoveTo ? "animate-piece-move" : ""}`}>
             <ChessPiece piece={piece} />
           </div>
         )}
-        
+
         {/* Show coordinates */}
         {showCoordinates && (
           <>
@@ -284,7 +368,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
           )}
         </div>
       </div>
-      
+
       {/* Pawn Promotion Dialog */}
       <Dialog open={showPromotionDialog} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md">
